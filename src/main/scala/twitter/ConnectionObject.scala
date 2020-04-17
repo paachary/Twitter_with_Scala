@@ -9,14 +9,27 @@ import org.apache.spark.SparkContext
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.twitter.TwitterUtils
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import twitter4j.Status
 import twitter4j.auth.OAuthAuthorization
 import twitter4j.conf.ConfigurationBuilder
 
+/** This is a helper object which
+ * 1. sets up the Twitter stream based on a filter
+ * and twitter developer account credentials.
+ * 2. sets up a Spark DStream to create RDDs for tweets' stream.
+ * 3. initializes a Kafka Producer with necessary configurations
+ * to publish the tweet events to a Kafka Topic.
+ *
+ */
 object ConnectionObject {
 
-  val logger = LoggerFactory.getLogger(ConnectionObject.getClass.getName)
+  val logger: Logger = LoggerFactory.getLogger(ConnectionObject.getClass.getName)
+
+  /**
+   * function to create a kafka producer based on certain kafka configurations.
+   * @return KafkaProducer[String,String]
+   */
   def createKafkaProducer : KafkaProducer[String,String] = {
     logger.info("Preparing the Kafka Configuration Properties")
     val props = new Properties()
@@ -38,6 +51,10 @@ object ConnectionObject {
     new KafkaProducer[String, String](props)
   }
 
+  /***
+   * function to parse the twitter credentials and populate the string elements.
+   * @return a tupple of 4 string elements
+   */
   // Parsing the twitter file for getting the authentication string
   def parseTwitterCred: (String, String, String, String ) = {
 
@@ -45,7 +62,7 @@ object ConnectionObject {
 
     logger.info("Preparing the twitter developer authentication")
     try {
-      for (line <- Source.fromFile( "/home/hadoop/Kafka/Twitter_with_Scala/twitter.txt"). getLines) {
+      for (line <- Source.fromFile( "twitter.txt"). getLines) {
         val fields = line.split(" ")
         if (fields.length == 2) {
           System.setProperty("twitter4j.oauth." + fields(0), fields(1))
@@ -62,6 +79,14 @@ object ConnectionObject {
     }
   }
 
+  /**
+   * function returning a DStream of Twitter events data
+   * along with sparkContext
+   * @param filter : a\n Array of String containing filters
+   * @param sparkContext : spark context
+   * @return DStream : DStream containing a twitter event
+   *         sparkContext
+   */
   def getTwitterDStream(filter: Seq[String], sparkContext: SparkContext): (DStream[Status], StreamingContext) = {
 
     val ssc = new StreamingContext(sparkContext, Seconds(10))
@@ -88,6 +113,14 @@ object ConnectionObject {
     ( tweets.window(Seconds(600)), ssc)
   }
 
+  /**
+   * function submitting a new Kafka Record object for a given topic
+   * and key/value pair via a Kafka producer
+   * @param topic : String containing the topic name
+   * @param key: the key for the topic
+   * @param value: the value for the topic
+   * @param producer: the kafka producer for sending the record to kafka.
+   */
   def sendProducerRecord( topic: String, key: String, value: String, producer: KafkaProducer[String, String]) :
   Unit = {
     producer.send(new ProducerRecord[String, String](topic, key, value))

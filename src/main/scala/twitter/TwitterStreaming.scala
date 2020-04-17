@@ -1,12 +1,12 @@
 package twitter
 
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.DStream
-import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.slf4j.{Logger, LoggerFactory}
-import twitter4j.{Place, Status}
+import twitter4j.Status
 
 /**
  *  The TwitterStreaming class provides an example of generating DStream from a twitter stream object.
@@ -14,7 +14,20 @@ import twitter4j.{Place, Status}
  */
 class TwitterStreaming {
 
-  def init: Unit = {
+  /** Init method
+   * Responsible for
+   * 1. Initializing the sparkSession and sparkConfig
+   * 2. Setting up the Twitter stream
+   * based on a filter and twitter developer account credentials.
+   * 3. Setting up a Spark DStream to create RDDs for tweets' stream.
+   * 4. Initializing a Kafka Producer with necessary configurations
+   * to publish the tweet events to a Kafka Topic.
+   *
+   * This method invokes a helper object (ConnectionObject) which initializes the twitter stream,
+   * DStream and Kafka Producer.
+   *
+   */
+  def init(): Unit = {
 
     val logger: Logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName)
     logger.info("Starting the tweet producer")
@@ -49,9 +62,8 @@ class TwitterStreaming {
               // Creating a producer record containing the topic, key and value for kafka producer
               sendProducerRecord(topic, key, value, producer)
             } catch {
-              case exception: Exception => {
+              case exception: Exception =>
                innerLogger.info("exception " + exception)
-              }
             }
           }
           innerLogger.info("Closing the producer")
@@ -74,6 +86,6 @@ object TwitterStreaming extends App {
   val twitterStreaming = new TwitterStreaming
   val logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName+"_main")
   logger.info("Invoking the main method")
-  twitterStreaming.init
+  twitterStreaming.init()
 }
 
