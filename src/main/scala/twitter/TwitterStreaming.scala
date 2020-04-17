@@ -9,10 +9,11 @@ import org.slf4j.{Logger, LoggerFactory}
 import twitter4j.Status
 
 /**
+ *
  *  The TwitterStreaming class provides an example of generating DStream from a twitter stream object.
  *  Further, this class publishes the twitter stream to a Kafka topic.
  */
-class TwitterStreaming {
+class TwitterStreaming(topic : String, tweetFilter : String) {
 
   /** Init method
    * Responsible for
@@ -29,19 +30,21 @@ class TwitterStreaming {
    */
   def init(): Unit = {
 
+    val filter = Seq(this.tweetFilter)
+    val topic = this.topic
+
     val logger: Logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName)
     logger.info("Starting the tweet producer")
     import ConnectionObject._
 
     val appName = "TwitterData"
-    val topic: String = "tweet_new_topic"
-    val filter : Seq[String] = Seq("narendramodi")
 
     val spark =
       SparkSession.builder().appName(appName).config("spark.master", "local[*]").getOrCreate()
 
     // Twitter Data
-    val (dStreamTweet: DStream[Status], ssc: StreamingContext) = getTwitterDStream(filter, spark.sparkContext)
+    val (dStreamTweet: DStream[Status], ssc: StreamingContext) = getTwitterDStream(filter,
+      spark.sparkContext)
 
     // Stream into Kafka
     dStreamTweet.foreachRDD{ rdd : RDD[Status] =>
@@ -67,7 +70,6 @@ class TwitterStreaming {
             }
           }
           innerLogger.info("Closing the producer")
-          producer.close()
         }
     }
     logger.info("Starting the streaming...")
@@ -83,9 +85,21 @@ class TwitterStreaming {
  * and publishes into a Kafka topic.
  */
 object TwitterStreaming extends App {
-  val twitterStreaming = new TwitterStreaming
+
   val logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName+"_main")
-  logger.info("Invoking the main method")
-  twitterStreaming.init()
+
+  if (args.length > 0) {
+    val topic = args(0)
+    val tweetFilter = args(1)
+
+    val twitterStreaming = new TwitterStreaming(topic, tweetFilter)
+    logger.info("Invoking the main method")
+    twitterStreaming.init()
+  }
+  else
+    logger.error("Sufficient arguments are not specified. Please see usage \n"+
+     " Usage>> \n" +
+      " twitter.TwitterStreaming <kafka topic name> <tweet filter>"
+    )
 }
 
