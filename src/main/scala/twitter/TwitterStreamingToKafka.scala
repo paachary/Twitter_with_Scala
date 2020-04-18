@@ -13,7 +13,7 @@ import twitter4j.Status
  *  The TwitterStreaming class provides an example of generating DStream from a twitter stream object.
  *  Further, this class publishes the twitter stream to a Kafka topic.
  */
-class TwitterStreaming(topic : String, tweetFilter : String) {
+class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
 
   /** Init method
    * Responsible for
@@ -33,7 +33,7 @@ class TwitterStreaming(topic : String, tweetFilter : String) {
     val filter = Seq(this.tweetFilter)
     val topic = this.topic
 
-    val logger: Logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName)
+    val logger: Logger = LoggerFactory.getLogger(TwitterStreamingToKafka.getClass.getName)
     logger.info("Starting the tweet producer")
     import ConnectionObject._
 
@@ -50,7 +50,7 @@ class TwitterStreaming(topic : String, tweetFilter : String) {
     dStreamTweet.foreachRDD{ rdd : RDD[Status] =>
         rdd.foreachPartition { partitionOfRecords =>
           // Kafka Producer
-          val innerLogger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName+"_dStream")
+          val innerLogger = LoggerFactory.getLogger(TwitterStreamingToKafka.getClass.getName+"_dStream")
           val producer: KafkaProducer[String, String] = createKafkaProducer
           partitionOfRecords.foreach { record =>
             // forming the key
@@ -84,15 +84,15 @@ class TwitterStreaming(topic : String, tweetFilter : String) {
  * The object invokes the instance of the class via its method: init, which initiates the twitter stream
  * and publishes into a Kafka topic.
  */
-object TwitterStreaming extends App {
+object TwitterStreamingToKafka extends App {
 
-  val logger = LoggerFactory.getLogger(TwitterStreaming.getClass.getName+"_main")
+  val logger = LoggerFactory.getLogger(TwitterStreamingToKafka.getClass.getName+"_main")
 
   if (args.length > 0) {
     val topic = args(0)
     val tweetFilter = args(1)
 
-    val twitterStreaming = new TwitterStreaming(topic, tweetFilter)
+    val twitterStreaming = new TwitterStreamingToKafka(topic, tweetFilter)
     logger.info("Invoking the main method")
     twitterStreaming.init()
   }
