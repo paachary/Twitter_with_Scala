@@ -24,3 +24,5 @@ libraryDependencies += "org.apache.spark" %% "spark-streaming-twitter" % "1.6.3"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.4"
 
 libraryDependencies += "org.apache.kafka" % "kafka-clients" % "2.4.1"
+
+

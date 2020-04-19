@@ -4,7 +4,7 @@ import java.io.FileNotFoundException
 import java.text.SimpleDateFormat
 import java.util.{Date, Properties}
 
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.clients.producer.{Callback, KafkaProducer, ProducerConfig, ProducerRecord, RecordMetadata}
 import org.apache.spark.SparkContext
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.DStream
@@ -123,7 +123,22 @@ object ConnectionObject {
    */
   def sendProducerRecord( topic: String, key: String, value: String, producer: KafkaProducer[String, String]) :
   Unit = {
-    producer.send(new ProducerRecord[String, String](topic, key, value))
+    producer.send(new ProducerRecord[String, String](topic, key, value),new Callback {
+      override def onCompletion(metadata: RecordMetadata, exception: Exception): Unit = {
+        if (exception == null)
+          println( "Received Metadata. \n" +
+            //          log.info("Received Metadata. \n" +
+            " Topic = "+metadata.topic() + ":" +
+            " key = " + key + ":" +
+            " value = " + value + ":" +
+            " Partition = "+ metadata.partition() + ":" +
+            " Offset = " + metadata.offset() +":" +
+            " Timestamp = " + metadata.timestamp() +"\n")
+        else
+          println("Exception occurred = " + exception)
+      }
+    }
+    )
   }
 }
 

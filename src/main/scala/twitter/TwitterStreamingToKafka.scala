@@ -45,10 +45,12 @@ class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
     // Twitter Data
     val (dStreamTweet: DStream[Status], ssc: StreamingContext) = getTwitterDStream(filter,
       spark.sparkContext)
-
     // Stream into Kafka
+    dStreamTweet.cache()
     dStreamTweet.foreachRDD{ rdd : RDD[Status] =>
+      println("inside foreachRDD")
         rdd.foreachPartition { partitionOfRecords =>
+          println("inside foreachPartition")
           // Kafka Producer
           val innerLogger = LoggerFactory.getLogger(TwitterStreamingToKafka.getClass.getName+"_dStream")
           val producer: KafkaProducer[String, String] = createKafkaProducer
@@ -60,13 +62,15 @@ class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
             val value = (record.getCreatedAt.getTime / 1000).toString + "~~" +
               record.getUser.getScreenName + "~~" +
               record.getText
+
+            println("key:" + key + ", value:" + value)
             innerLogger.info("key:" + key + ", value:" + value)
             try {
               // Creating a producer record containing the topic, key and value for kafka producer
               sendProducerRecord(topic, key, value, producer)
             } catch {
               case exception: Exception =>
-               innerLogger.info("exception " + exception)
+               innerLogger.error("exception " + exception)
             }
           }
           innerLogger.info("Closing the producer")
