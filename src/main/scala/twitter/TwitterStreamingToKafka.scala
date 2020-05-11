@@ -48,9 +48,7 @@ class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
     // Stream into Kafka
     dStreamTweet.cache()
     dStreamTweet.foreachRDD{ rdd : RDD[Status] =>
-      println("inside foreachRDD")
         rdd.foreachPartition { partitionOfRecords =>
-          println("inside foreachPartition")
           // Kafka Producer
           val innerLogger = LoggerFactory.getLogger(TwitterStreamingToKafka.getClass.getName+"_dStream")
           val producer: KafkaProducer[String, String] = createKafkaProducer
@@ -63,7 +61,6 @@ class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
               record.getUser.getScreenName + "~~" +
               record.getText
 
-            println("key:" + key + ", value:" + value)
             innerLogger.info("key:" + key + ", value:" + value)
             try {
               // Creating a producer record containing the topic, key and value for kafka producer
@@ -71,6 +68,7 @@ class TwitterStreamingToKafka(topic : String, tweetFilter : String) {
             } catch {
               case exception: Exception =>
                innerLogger.error("exception " + exception)
+               println("exception " + exception)
             }
           }
           innerLogger.info("Closing the producer")
